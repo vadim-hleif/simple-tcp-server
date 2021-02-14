@@ -1,22 +1,24 @@
 package service
 
-var storage = make(map[int][]int)
+import "sync"
+
+var storage = new(sync.Map)
 
 // SaveUser add provided userId to all friends for a quick search in the future
 func SaveUser(userId int, friends []int) {
 	for _, friendId := range friends {
-		friendsIds, ok := storage[friendId]
+		friendsIds, ok := storage.Load(friendId)
 
 		if ok {
-			storage[friendId] = append(friendsIds, userId)
+			storage.Store(friendId, append(friendsIds.([]int), userId))
 		} else {
-			storage[friendId] = []int{userId}
+			storage.Store(friendId, []int{userId})
 		}
 	}
 }
 
 func FindAllFriends(userId int) ([]int, bool) {
-	friends, ok := storage[userId]
+	friends, ok := storage.Load(userId)
 
-	return friends, ok
+	return friends.([]int), ok
 }
