@@ -1,6 +1,9 @@
 package service
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 var storage = new(sync.Map)
 
@@ -17,8 +20,13 @@ func SaveUser(userId int, friends []int) {
 	}
 }
 
-func FindAllFriends(userId int) ([]int, bool) {
+// GetAllFriends returns ids of all friends, who have provided userId in friends[]int
+func GetAllFriends(userId int) ([]int, error) {
 	friends, ok := storage.Load(userId)
 
-	return friends.([]int), ok
+	if ok {
+		return friends.([]int), nil
+	}
+
+	return nil, fmt.Errorf("no friends are found")
 }
