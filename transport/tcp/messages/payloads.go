@@ -5,7 +5,7 @@ type Payload struct {
 	Friends []int
 }
 
-type UserOnlineNotification struct {
+type UserStatusNotification struct {
 	UserId int  `json:"friend_id"`
 	Online bool `json:"online"`
 }

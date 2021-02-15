@@ -5,30 +5,34 @@ import (
 	"encoding/json"
 	"log"
 	"net"
-	"simple-tcp-server/transport/tcp/messages"
 	"sync"
+
+	"simple-tcp-server/endpoints"
+	"simple-tcp-server/transport/tcp/messages"
 )
 
-type MessageHandler interface {
-	OnMessage(messages.Payload)
+type Server interface {
+	StartServer(port string)
 }
 
-var connectionsByUserId = new(sync.Map)
+type tcpServer struct {
+	notificationsApi    endpoints.UsersNotificationsApi
+	connectionsByUserId sync.Map
+}
 
-func SendMessageToUser(userId int, messageSupplier func() []byte) {
-	c, ok := connectionsByUserId.Load(userId)
-
-	if ok {
-		c.(net.Conn).Write(messageSupplier())
+func NewTcpServer(notificationsApi endpoints.UsersNotificationsApi) Server {
+	return &tcpServer{
+		notificationsApi: notificationsApi,
 	}
 }
 
-func StartServer(port string, handler MessageHandler) {
+func (server *tcpServer) StartServer(port string) {
 	listen, err := net.Listen("tcp", port)
 	if err != nil {
 		panic(err)
 	}
 	defer listen.Close()
+
 	log.Println("server started at port:", port)
 
 	for {
@@ -38,27 +42,50 @@ func StartServer(port string, handler MessageHandler) {
 		}
 		log.Println("connection accepted:", conn.RemoteAddr())
 
-		go handle(conn, handler)
+		go server.handle(conn)
 	}
 }
 
-func handle(conn net.Conn, handler MessageHandler) {
+func (server *tcpServer) handle(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
+	var payload messages.Payload
+
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
 
-		var payload messages.Payload
 		err := json.Unmarshal(bytes, &payload)
 		if err != nil {
 			log.Println(err)
 			break
 		}
 
+		server.notificationsApi.UserLoggedIn(endpoints.UserLoginRequest{
+			UserId:     payload.UserId,
+			FriendsIds: payload.Friends,
+		}, server.sendNotifications)
+
 		// save connection
-		connectionsByUserId.Store(payload.UserId, conn)
-		handler.OnMessage(payload)
+		server.connectionsByUserId.Store(payload.UserId, conn)
 	}
 
 	log.Println(conn.RemoteAddr(), "will be closed")
+	server.notificationsApi.UserLogOut(payload.UserId, server.sendNotifications)
 	_ = conn.Close()
+}
+
+// send notifications by user id
+// uses internal state to detect connection by user_id
+func (server *tcpServer) sendNotifications(messagesByFried map[int]endpoints.StatusNotification) {
+	for id, notification := range messagesByFried {
+		connection, ok := server.connectionsByUserId.Load(id)
+
+		if ok {
+			bytes, _ := json.Marshal(messages.UserStatusNotification{
+				UserId: notification.UserId,
+				Online: notification.Online,
+			})
+
+			connection.(net.Conn).Write(bytes)
+		}
+	}
 }
