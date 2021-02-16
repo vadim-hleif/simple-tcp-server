@@ -2,35 +2,42 @@ package service
 
 import (
 	"fmt"
-	"simple-tcp-server/pkg/notifications"
 	"sync"
 )
 
-func NewInMemoryUsersStorage() notifications.UsersStorage {
-	return &inMemoryUsersStorage{}
+func NewInMemoryUsersStorage() UsersStorage {
+	return &inMemoryUsersStorage{
+		storage: make(map[int][]int),
+	}
 }
 
 type inMemoryUsersStorage struct {
-	storage sync.Map
+	storage map[int][]int
+	mu      sync.Mutex
 }
 
 func (s *inMemoryUsersStorage) SaveUser(userId int, friends []int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for _, friendId := range friends {
-		friendsIds, ok := s.storage.Load(friendId)
+		friendsIds, ok := s.storage[friendId]
 
 		if ok {
-			s.storage.Store(friendId, append(friendsIds.([]int), userId))
+			s.storage[friendId] = append(friendsIds, userId)
 		} else {
-			s.storage.Store(friendId, []int{userId})
+			s.storage[friendId] = []int{userId}
 		}
 	}
 }
 
 func (s *inMemoryUsersStorage) GetAllFriends(userId int) ([]int, error) {
-	friends, ok := s.storage.Load(userId)
+	s.mu.Lock()
+	friends, ok := s.storage[userId]
+	s.mu.Unlock()
 
 	if ok {
-		return friends.([]int), nil
+		return friends, nil
 	}
 
 	return nil, fmt.Errorf("no friends are found")
