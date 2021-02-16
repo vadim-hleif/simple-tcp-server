@@ -3,9 +3,11 @@ package service
 import (
 	"fmt"
 	"sync"
+
+	"simple-tcp-server/pkg/notifications"
 )
 
-func NewInMemoryUsersStorage() UsersStorage {
+func NewInMemoryUsersStorage() notifications.UsersStorage {
 	return &inMemoryUsersStorage{
 		storage: make(map[int][]int),
 	}

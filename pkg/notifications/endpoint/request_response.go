@@ -5,10 +5,8 @@ type UserLoginRequest struct {
 	FriendsIds []int
 }
 
-type UserLoginResponse struct {
-	OnlineFriendsIds []int
-}
-
-type UserLogoutResponse struct {
+type UserStatusChangedResponse struct {
+	UserId           int
+	IsOnline         bool
 	OnlineFriendsIds []int
 }

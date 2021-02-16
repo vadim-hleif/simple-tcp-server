@@ -2,10 +2,13 @@ package tcp
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"log"
 	"net"
 	"sync"
+
+	kit "github.com/go-kit/kit/endpoint"
 
 	"simple-tcp-server/pkg/notifications/endpoint"
 	"simple-tcp-server/pkg/notifications/transport/tcp/messages"
@@ -21,7 +24,28 @@ type tcpServer struct {
 }
 
 func NewTcpServer(endpoints endpoint.Endpoints) Server {
-	return &tcpServer{endpoints: endpoints}
+	var server = &tcpServer{}
+	middleware := tcpNotificationsMiddleWare(server)
+
+	server.endpoints = endpoint.Endpoints{
+		UserLoginEndpoint:  middleware(endpoints.UserLoginEndpoint),
+		UserLogoutEndpoint: middleware(endpoints.UserLogoutEndpoint),
+	}
+
+	return server
+}
+
+func tcpNotificationsMiddleWare(server *tcpServer) kit.Middleware {
+	return func(next kit.Endpoint) kit.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			response, err = next(ctx, request)
+
+			res := response.(endpoint.UserStatusChangedResponse)
+			server.sendNotifications(res.UserId, res.OnlineFriendsIds, res.IsOnline)
+
+			return response, err
+		}
+	}
 }
 
 func (server *tcpServer) StartServer(port string) {
@@ -57,21 +81,20 @@ func (server *tcpServer) handle(conn net.Conn) {
 			break
 		}
 
-		response, _ := server.endpoints.UserLoginEndpoint(nil, endpoint.UserLoginRequest{
+		server.endpoints.UserLoginEndpoint(nil, endpoint.UserLoginRequest{
 			UserId:     payload.UserId,
 			FriendsIds: payload.Friends,
 		})
-		server.sendNotifications(payload.UserId, response.(endpoint.UserLoginResponse).OnlineFriendsIds, true)
-
-		// save connection
+		// save user's connection
 		server.connectionsByUserId.Store(payload.UserId, conn)
 	}
 
 	log.Println(conn.RemoteAddr(), "will be closed")
-	response, _ := server.endpoints.UserLogoutEndpoint(nil, payload.UserId)
-	server.sendNotifications(payload.UserId, response.(endpoint.UserLogoutResponse).OnlineFriendsIds, false)
-	server.connectionsByUserId.Delete(payload.UserId)
 
+	server.endpoints.UserLogoutEndpoint(nil, payload.UserId)
+
+	// remove user's connection
+	server.connectionsByUserId.Delete(payload.UserId)
 	_ = conn.Close()
 }
 

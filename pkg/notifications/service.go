@@ -1,4 +1,4 @@
-package service
+package notifications
 
 type UsersStorage interface {
 	// SaveUser add provided userId to all friends for a quick search in the future
