@@ -16,14 +16,12 @@ type Server interface {
 }
 
 type tcpServer struct {
-	notificationsApi    endpoint.UsersNotificationsApi
+	endpoints           endpoint.Endpoints
 	connectionsByUserId sync.Map
 }
 
-func NewTcpServer(notificationsApi endpoint.UsersNotificationsApi) Server {
-	return &tcpServer{
-		notificationsApi: notificationsApi,
-	}
+func NewTcpServer(endpoints endpoint.Endpoints) Server {
+	return &tcpServer{endpoints: endpoints}
 }
 
 func (server *tcpServer) StartServer(port string) {
@@ -59,19 +57,19 @@ func (server *tcpServer) handle(conn net.Conn) {
 			break
 		}
 
-		response := server.notificationsApi.UserLoggedIn(endpoint.UserLoginRequest{
+		response, _ := server.endpoints.UserLoginEndpoint(nil, endpoint.UserLoginRequest{
 			UserId:     payload.UserId,
 			FriendsIds: payload.Friends,
 		})
-		server.sendNotifications(payload.UserId, response.OnlineFriendsIds, true)
+		server.sendNotifications(payload.UserId, response.(endpoint.UserLoginResponse).OnlineFriendsIds, true)
 
 		// save connection
 		server.connectionsByUserId.Store(payload.UserId, conn)
 	}
 
 	log.Println(conn.RemoteAddr(), "will be closed")
-	response := server.notificationsApi.UserLogOut(payload.UserId)
-	server.sendNotifications(payload.UserId, response.OnlineFriendsIds, false)
+	response, _ := server.endpoints.UserLogoutEndpoint(nil, payload.UserId)
+	server.sendNotifications(payload.UserId, response.(endpoint.UserLogoutResponse).OnlineFriendsIds, false)
 	server.connectionsByUserId.Delete(payload.UserId)
 
 	_ = conn.Close()

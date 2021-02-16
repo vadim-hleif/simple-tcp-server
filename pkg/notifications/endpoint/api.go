@@ -1,45 +1,50 @@
 package endpoint
 
 import (
+	"context"
+
+	"github.com/go-kit/kit/endpoint"
+
 	"simple-tcp-server/pkg/notifications/service"
 )
 
-// callbacks accept map with users ids and messages for them
-// e.g.
-//1 -> {"online": false}
-//2 -> {"online": false}
-//3 -> any text
-type UsersNotificationsApi struct {
-	UserLoggedIn func(UserLoginRequest) UserLoginResponse
-	UserLogOut   func(int) UserLogoutResponse
+type Endpoints struct {
+	UserLoginEndpoint  endpoint.Endpoint
+	UserLogoutEndpoint endpoint.Endpoint
 }
 
-func MakeEndpoints(storage service.UsersStorage) UsersNotificationsApi {
-	return UsersNotificationsApi{
-		UserLoggedIn: func(request UserLoginRequest) UserLoginResponse {
-			storage.SaveUser(request.UserId, request.FriendsIds)
+func MakeEndpoints(storage service.UsersStorage) Endpoints {
+	return Endpoints{
+		UserLoginEndpoint:  makeUserLoginEndpoint(storage),
+		UserLogoutEndpoint: makeUserLogoutEndpoint(storage),
+	}
+}
 
-			friends, err := storage.GetAllFriends(request.UserId)
-			// just ignore when no one friend are online
-			if err != nil {
-				return UserLoginResponse{}
-			}
+func makeUserLoginEndpoint(storage service.UsersStorage) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(UserLoginRequest)
+		storage.SaveUser(req.UserId, req.FriendsIds)
 
-			return UserLoginResponse{
-				OnlineFriendsIds: friends,
-			}
-		},
-		UserLogOut: func(userId int) UserLogoutResponse {
-			friends, err := storage.GetAllFriends(userId)
+		friends, err := storage.GetAllFriends(req.UserId)
+		// just ignore when no one friend are online
+		if err != nil {
+			return UserLoginResponse{}, err
+		}
 
-			// just ignore when no one friend are online
-			if err != nil {
-				return UserLogoutResponse{}
-			}
+		return UserLoginResponse{OnlineFriendsIds: friends}, nil
+	}
+}
 
-			return UserLogoutResponse{
-				OnlineFriendsIds: friends,
-			}
-		},
+func makeUserLogoutEndpoint(storage service.UsersStorage) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		userId := request.(int)
+		friends, err := storage.GetAllFriends(userId)
+
+		// just ignore when no one friend are online
+		if err != nil {
+			return UserLogoutResponse{}, err
+		}
+
+		return UserLogoutResponse{OnlineFriendsIds: friends}, nil
 	}
 }
