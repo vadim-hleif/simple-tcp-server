@@ -5,7 +5,10 @@ type UserLoginRequest struct {
 	FriendsIds []int
 }
 
-type StatusNotification struct {
-	UserId int
-	Online bool
+type UserLoginResponse struct {
+	OnlineFriendsIds []int
+}
+
+type UserLogoutResponse struct {
+	OnlineFriendsIds []int
 }

@@ -59,30 +59,34 @@ func (server *tcpServer) handle(conn net.Conn) {
 			break
 		}
 
-		server.notificationsApi.UserLoggedIn(endpoint.UserLoginRequest{
+		response := server.notificationsApi.UserLoggedIn(endpoint.UserLoginRequest{
 			UserId:     payload.UserId,
 			FriendsIds: payload.Friends,
-		}, server.sendNotifications)
+		})
+		server.sendNotifications(payload.UserId, response.OnlineFriendsIds, true)
 
 		// save connection
 		server.connectionsByUserId.Store(payload.UserId, conn)
 	}
 
 	log.Println(conn.RemoteAddr(), "will be closed")
-	server.notificationsApi.UserLogOut(payload.UserId, server.sendNotifications)
+	response := server.notificationsApi.UserLogOut(payload.UserId)
+	server.sendNotifications(payload.UserId, response.OnlineFriendsIds, false)
+	server.connectionsByUserId.Delete(payload.UserId)
+
 	_ = conn.Close()
 }
 
-// send notifications by user id
+// send notification to each friend about a new status of user
 // uses internal state to detect connection by user_id
-func (server *tcpServer) sendNotifications(messagesByFried map[int]endpoint.StatusNotification) {
-	for id, notification := range messagesByFried {
-		connection, ok := server.connectionsByUserId.Load(id)
+func (server *tcpServer) sendNotifications(userId int, onlineFriendsIds []int, isUserOnline bool) {
+	for _, friendId := range onlineFriendsIds {
+		connection, ok := server.connectionsByUserId.Load(friendId)
 
 		if ok {
 			bytes, _ := json.Marshal(messages.UserStatusNotification{
-				UserId: notification.UserId,
-				Online: notification.Online,
+				UserId: userId,
+				Online: isUserOnline,
 			})
 
 			connection.(net.Conn).Write(bytes)

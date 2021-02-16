@@ -10,47 +10,36 @@ import (
 //2 -> {"online": false}
 //3 -> any text
 type UsersNotificationsApi struct {
-	UserLoggedIn func(UserLoginRequest, func(map[int]StatusNotification))
-	UserLogOut   func(int, func(map[int]StatusNotification))
+	UserLoggedIn func(UserLoginRequest) UserLoginResponse
+	UserLogOut   func(int) UserLogoutResponse
 }
 
 func MakeEndpoints(storage service.UsersStorage) UsersNotificationsApi {
 	return UsersNotificationsApi{
-		UserLoggedIn: func(request UserLoginRequest, sendNotifications func(map[int]StatusNotification)) {
+		UserLoggedIn: func(request UserLoginRequest) UserLoginResponse {
 			storage.SaveUser(request.UserId, request.FriendsIds)
 
 			friends, err := storage.GetAllFriends(request.UserId)
 			// just ignore when no one friend are online
 			if err != nil {
-				return
+				return UserLoginResponse{}
 			}
 
-			notifications := toStatusNotifications(request.UserId, true, friends)
-			sendNotifications(notifications)
+			return UserLoginResponse{
+				OnlineFriendsIds: friends,
+			}
 		},
-		UserLogOut: func(userId int, sendNotifications func(map[int]StatusNotification)) {
+		UserLogOut: func(userId int) UserLogoutResponse {
 			friends, err := storage.GetAllFriends(userId)
 
 			// just ignore when no one friend are online
 			if err != nil {
-				return
+				return UserLogoutResponse{}
 			}
 
-			notifications := toStatusNotifications(userId, false, friends)
-			sendNotifications(notifications)
+			return UserLogoutResponse{
+				OnlineFriendsIds: friends,
+			}
 		},
 	}
-}
-
-func toStatusNotifications(userId int, isOnline bool, friends []int) map[int]StatusNotification {
-	notifications := make(map[int]StatusNotification)
-
-	for _, id := range friends {
-		notifications[id] = StatusNotification{
-			UserId: userId,
-			Online: isOnline,
-		}
-	}
-
-	return notifications
 }
