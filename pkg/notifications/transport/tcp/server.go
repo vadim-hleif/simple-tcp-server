@@ -7,8 +7,8 @@ import (
 	"net"
 	"sync"
 
-	"simple-tcp-server/endpoints"
-	"simple-tcp-server/transport/tcp/messages"
+	"simple-tcp-server/pkg/notifications/endpoint"
+	"simple-tcp-server/pkg/notifications/transport/tcp/messages"
 )
 
 type Server interface {
@@ -16,11 +16,11 @@ type Server interface {
 }
 
 type tcpServer struct {
-	notificationsApi    endpoints.UsersNotificationsApi
+	notificationsApi    endpoint.UsersNotificationsApi
 	connectionsByUserId sync.Map
 }
 
-func NewTcpServer(notificationsApi endpoints.UsersNotificationsApi) Server {
+func NewTcpServer(notificationsApi endpoint.UsersNotificationsApi) Server {
 	return &tcpServer{
 		notificationsApi: notificationsApi,
 	}
@@ -59,7 +59,7 @@ func (server *tcpServer) handle(conn net.Conn) {
 			break
 		}
 
-		server.notificationsApi.UserLoggedIn(endpoints.UserLoginRequest{
+		server.notificationsApi.UserLoggedIn(endpoint.UserLoginRequest{
 			UserId:     payload.UserId,
 			FriendsIds: payload.Friends,
 		}, server.sendNotifications)
@@ -75,7 +75,7 @@ func (server *tcpServer) handle(conn net.Conn) {
 
 // send notifications by user id
 // uses internal state to detect connection by user_id
-func (server *tcpServer) sendNotifications(messagesByFried map[int]endpoints.StatusNotification) {
+func (server *tcpServer) sendNotifications(messagesByFried map[int]endpoint.StatusNotification) {
 	for id, notification := range messagesByFried {
 		connection, ok := server.connectionsByUserId.Load(id)
 

@@ -1,7 +1,7 @@
-package endpoints
+package endpoint
 
 import (
-	"simple-tcp-server/service"
+	"simple-tcp-server/pkg/notifications/service"
 )
 
 // callbacks accept map with users ids and messages for them

@@ -1,4 +1,4 @@
-package endpoints
+package endpoint
 
 type UserLoginRequest struct {
 	UserId     int
