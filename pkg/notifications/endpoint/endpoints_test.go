@@ -41,3 +41,18 @@ func Test_UserLoginEndpoint(t *testing.T) {
 	assert.ElementsMatch(t, mock.lastSavedFriendsIDs, request.FriendsIDs)
 	assert.Equal(t, mock.lastSavedUserID, request.UserID)
 }
+
+func Test_UserLogoutEndpoint(t *testing.T) {
+	mock := &userStorageMock{}
+	userLogoutEndpoint := makeUserLogoutEndpoint(mock)
+
+	mock.mockedFriends = []int{2, 4}
+	request := 1
+
+	response, _ := userLogoutEndpoint(nil, request)
+	res := response.(UserStatusChangedResponse)
+
+	assert.ElementsMatch(t, res.OnlineFriendsIDs, mock.mockedFriends)
+	assert.Equal(t, res.UserID, request)
+	assert.False(t, res.IsOnline)
+}
