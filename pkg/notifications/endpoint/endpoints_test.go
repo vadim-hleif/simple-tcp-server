@@ -21,19 +21,23 @@ func (u *userStorageMock) GetAllFriends(userId int) ([]int, error) {
 	return u.mockedFriends, nil
 }
 
-func Test_makeUserLoginEndpoint(t *testing.T) {
+func Test_UserLoginEndpoint(t *testing.T) {
 	mock := &userStorageMock{}
 	userLoginEndpoint := makeUserLoginEndpoint(mock)
 
 	mock.mockedFriends = []int{2, 4}
-	response, _ := userLoginEndpoint(nil, UserLoginRequest{
+	request := UserLoginRequest{
 		UserId:     1,
 		FriendsIds: []int{2, 3, 4},
-	})
+	}
+
+	response, _ := userLoginEndpoint(nil, request)
 	res := response.(UserStatusChangedResponse)
 
-	assert.ElementsMatch(t, mock.mockedFriends, res.OnlineFriendsIds)
-	assert.Equal(t, mock.lastSavedUserId, 1)
-	assert.ElementsMatch(t, mock.lastSavedFriendsIds, []int{2, 3, 4})
+	assert.ElementsMatch(t, res.OnlineFriendsIds, mock.mockedFriends)
+	assert.Equal(t, res.UserId, request.UserId)
+	assert.True(t, res.IsOnline)
 
+	assert.ElementsMatch(t, mock.lastSavedFriendsIds, request.FriendsIds)
+	assert.Equal(t, mock.lastSavedUserId, request.UserId)
 }
