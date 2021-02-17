@@ -101,15 +101,15 @@ func (server *tcpServer) handle(conn net.Conn) {
 // send notification to each friend about a new status of user
 // uses internal state to detect connection by user_id
 func (server *tcpServer) sendNotifications(userID int, onlineFriendsIDs []int, isUserOnline bool) {
+	bytes, _ := json.Marshal(messages.UserStatusNotification{
+		UserID: userID,
+		Online: isUserOnline,
+	})
+
 	for _, friendID := range onlineFriendsIDs {
 		connection, ok := server.connectionsByUserID.Load(friendID)
 
 		if ok {
-			bytes, _ := json.Marshal(messages.UserStatusNotification{
-				UserID: userID,
-				Online: isUserOnline,
-			})
-
 			connection.(net.Conn).Write(bytes)
 		}
 	}
