@@ -1,4 +1,4 @@
-package messages
+package tcp
 
 type Payload struct {
 	UserID     int   `json:"user_id"`

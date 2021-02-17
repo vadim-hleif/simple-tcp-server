@@ -2,16 +2,12 @@ package tcp
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"log"
 	"net"
 	"sync"
 
-	kit "github.com/go-kit/kit/endpoint"
-
 	"simple-tcp-server/pkg/notifications/endpoint"
-	"simple-tcp-server/pkg/notifications/transport/tcp/messages"
 )
 
 type Server interface {
@@ -33,19 +29,6 @@ func NewTcpServer(endpoints endpoint.Endpoints) Server {
 	}
 
 	return server
-}
-
-func tcpNotificationsMiddleWare(server *tcpServer) kit.Middleware {
-	return func(next kit.Endpoint) kit.Endpoint {
-		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-			response, err = next(ctx, request)
-
-			res := response.(endpoint.UserStatusChangedResponse)
-			server.sendNotifications(res.UserID, res.OnlineFriendsIDs, res.IsOnline)
-
-			return response, err
-		}
-	}
 }
 
 func (server *tcpServer) StartServer(port string) {
@@ -70,7 +53,7 @@ func (server *tcpServer) StartServer(port string) {
 
 func (server *tcpServer) handle(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
-	var payload messages.Payload
+	var payload Payload
 
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
@@ -101,7 +84,7 @@ func (server *tcpServer) handle(conn net.Conn) {
 // send notification to each friend about a new status of user
 // uses internal state to detect connection by user_id
 func (server *tcpServer) sendNotifications(userID int, onlineFriendsIDs []int, isUserOnline bool) {
-	bytes, _ := json.Marshal(messages.UserStatusNotification{
+	bytes, _ := json.Marshal(UserStatusNotification{
 		UserID: userID,
 		Online: isUserOnline,
 	})
