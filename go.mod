@@ -2,4 +2,7 @@ module simple-tcp-server
 
 go 1.15
 
-require github.com/stretchr/testify v1.7.0
+require (
+	github.com/go-kit/kit v0.10.0
+	github.com/stretchr/testify v1.7.0
+)
