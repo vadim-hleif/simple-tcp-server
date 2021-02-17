@@ -9,12 +9,13 @@ import (
 
 func NewInMemoryUsersStorage() notifications.UsersStorage {
 	return &inMemoryUsersStorage{
-		storage: make(map[int][]int),
+		storage: map[int]map[int]bool{},
 	}
 }
 
 type inMemoryUsersStorage struct {
-	storage map[int][]int
+	// user_id and his friends (set)
+	storage map[int]map[int]bool
 	mu      sync.Mutex
 }
 
@@ -26,9 +27,9 @@ func (s *inMemoryUsersStorage) SaveUser(userID int, friends []int) {
 		friendsIDs, ok := s.storage[friendID]
 
 		if ok {
-			s.storage[friendID] = append(friendsIDs, userID)
+			friendsIDs[userID] = true
 		} else {
-			s.storage[friendID] = []int{userID}
+			s.storage[friendID] = map[int]bool{userID: true}
 		}
 	}
 }
@@ -39,8 +40,20 @@ func (s *inMemoryUsersStorage) GetAllFriends(userID int) ([]int, error) {
 	s.mu.Unlock()
 
 	if ok {
-		return friends, nil
+		return keysAsSlice(friends), nil
 	}
 
 	return nil, fmt.Errorf("no friends are found")
+}
+
+func keysAsSlice(data map[int]bool) []int {
+	keys := make([]int, len(data))
+
+	i := 0
+	for key := range data {
+		keys[i] = key
+		i++
+	}
+
+	return keys
 }
