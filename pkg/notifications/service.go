@@ -1,9 +1,9 @@
 package notifications
 
 type UsersStorage interface {
-	// SaveUser add provided userId to all friends for a quick search in the future
-	SaveUser(userId int, friends []int)
+	// SaveUser add provided userID to all friends for a quick search in the future
+	SaveUser(userID int, friends []int)
 
-	// GetAllFriends returns ids of all friends, who have provided userId in friends[]int
-	GetAllFriends(userId int) ([]int, error)
+	// GetAllFriends returns IDs of all friends, who have provided userID in friends[]int
+	GetAllFriends(userID int) ([]int, error)
 }

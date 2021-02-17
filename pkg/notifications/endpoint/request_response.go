@@ -1,12 +1,12 @@
 package endpoint
 
 type UserLoginRequest struct {
-	UserId     int
-	FriendsIds []int
+	UserID     int
+	FriendsIDs []int
 }
 
 type UserStatusChangedResponse struct {
-	UserId           int
+	UserID           int
 	IsOnline         bool
-	OnlineFriendsIds []int
+	OnlineFriendsIDs []int
 }

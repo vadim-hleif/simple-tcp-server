@@ -23,28 +23,28 @@ func MakeEndpoints(storage notifications.UsersStorage) Endpoints {
 func makeUserLoginEndpoint(storage notifications.UsersStorage) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(UserLoginRequest)
-		storage.SaveUser(req.UserId, req.FriendsIds)
+		storage.SaveUser(req.UserID, req.FriendsIDs)
 
-		friends, err := storage.GetAllFriends(req.UserId)
+		friends, err := storage.GetAllFriends(req.UserID)
 		// just ignore when no one friend are online
 		if err != nil {
-			return UserStatusChangedResponse{UserId: req.UserId, IsOnline: true}, err
+			return UserStatusChangedResponse{UserID: req.UserID, IsOnline: true}, err
 		}
 
-		return UserStatusChangedResponse{UserId: req.UserId, IsOnline: true, OnlineFriendsIds: friends}, nil
+		return UserStatusChangedResponse{UserID: req.UserID, IsOnline: true, OnlineFriendsIDs: friends}, nil
 	}
 }
 
 func makeUserLogoutEndpoint(storage notifications.UsersStorage) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		userId := request.(int)
-		friends, err := storage.GetAllFriends(userId)
+		userID := request.(int)
+		friends, err := storage.GetAllFriends(userID)
 
 		// just ignore when no one friend are online
 		if err != nil {
-			return UserStatusChangedResponse{UserId: userId, IsOnline: false}, err
+			return UserStatusChangedResponse{UserID: userID, IsOnline: false}, err
 		}
 
-		return UserStatusChangedResponse{UserId: userId, IsOnline: false, OnlineFriendsIds: friends}, nil
+		return UserStatusChangedResponse{UserID: userID, IsOnline: false, OnlineFriendsIDs: friends}, nil
 	}
 }

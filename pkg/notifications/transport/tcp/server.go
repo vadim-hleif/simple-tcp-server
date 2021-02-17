@@ -20,7 +20,7 @@ type Server interface {
 
 type tcpServer struct {
 	endpoints           endpoint.Endpoints
-	connectionsByUserId sync.Map
+	connectionsByUserID sync.Map
 }
 
 func NewTcpServer(endpoints endpoint.Endpoints) Server {
@@ -41,7 +41,7 @@ func tcpNotificationsMiddleWare(server *tcpServer) kit.Middleware {
 			response, err = next(ctx, request)
 
 			res := response.(endpoint.UserStatusChangedResponse)
-			server.sendNotifications(res.UserId, res.OnlineFriendsIds, res.IsOnline)
+			server.sendNotifications(res.UserID, res.OnlineFriendsIDs, res.IsOnline)
 
 			return response, err
 		}
@@ -82,31 +82,31 @@ func (server *tcpServer) handle(conn net.Conn) {
 		}
 
 		server.endpoints.UserLoginEndpoint(nil, endpoint.UserLoginRequest{
-			UserId:     payload.UserId,
-			FriendsIds: payload.Friends,
+			UserID:     payload.UserID,
+			FriendsIDs: payload.FriendsIDs,
 		})
 		// save user's connection
-		server.connectionsByUserId.Store(payload.UserId, conn)
+		server.connectionsByUserID.Store(payload.UserID, conn)
 	}
 
 	log.Println(conn.RemoteAddr(), "will be closed")
 
-	server.endpoints.UserLogoutEndpoint(nil, payload.UserId)
+	server.endpoints.UserLogoutEndpoint(nil, payload.UserID)
 
 	// remove user's connection
-	server.connectionsByUserId.Delete(payload.UserId)
+	server.connectionsByUserID.Delete(payload.UserID)
 	_ = conn.Close()
 }
 
 // send notification to each friend about a new status of user
 // uses internal state to detect connection by user_id
-func (server *tcpServer) sendNotifications(userId int, onlineFriendsIds []int, isUserOnline bool) {
-	for _, friendId := range onlineFriendsIds {
-		connection, ok := server.connectionsByUserId.Load(friendId)
+func (server *tcpServer) sendNotifications(userID int, onlineFriendsIDs []int, isUserOnline bool) {
+	for _, friendID := range onlineFriendsIDs {
+		connection, ok := server.connectionsByUserID.Load(friendID)
 
 		if ok {
 			bytes, _ := json.Marshal(messages.UserStatusNotification{
-				UserId: userId,
+				UserID: userID,
 				Online: isUserOnline,
 			})
 

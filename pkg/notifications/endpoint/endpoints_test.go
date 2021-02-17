@@ -6,18 +6,18 @@ import (
 )
 
 type userStorageMock struct {
-	lastSavedUserId     int
-	lastSavedFriendsIds []int
+	lastSavedUserID     int
+	lastSavedFriendsIDs []int
 
 	mockedFriends []int
 }
 
-func (u *userStorageMock) SaveUser(userId int, friends []int) {
-	u.lastSavedUserId = userId
-	u.lastSavedFriendsIds = friends
+func (u *userStorageMock) SaveUser(userID int, friends []int) {
+	u.lastSavedUserID = userID
+	u.lastSavedFriendsIDs = friends
 }
 
-func (u *userStorageMock) GetAllFriends(userId int) ([]int, error) {
+func (u *userStorageMock) GetAllFriends(userID int) ([]int, error) {
 	return u.mockedFriends, nil
 }
 
@@ -27,17 +27,17 @@ func Test_UserLoginEndpoint(t *testing.T) {
 
 	mock.mockedFriends = []int{2, 4}
 	request := UserLoginRequest{
-		UserId:     1,
-		FriendsIds: []int{2, 3, 4},
+		UserID:     1,
+		FriendsIDs: []int{2, 3, 4},
 	}
 
 	response, _ := userLoginEndpoint(nil, request)
 	res := response.(UserStatusChangedResponse)
 
-	assert.ElementsMatch(t, res.OnlineFriendsIds, mock.mockedFriends)
-	assert.Equal(t, res.UserId, request.UserId)
+	assert.ElementsMatch(t, res.OnlineFriendsIDs, mock.mockedFriends)
+	assert.Equal(t, res.UserID, request.UserID)
 	assert.True(t, res.IsOnline)
 
-	assert.ElementsMatch(t, mock.lastSavedFriendsIds, request.FriendsIds)
-	assert.Equal(t, mock.lastSavedUserId, request.UserId)
+	assert.ElementsMatch(t, mock.lastSavedFriendsIDs, request.FriendsIDs)
+	assert.Equal(t, mock.lastSavedUserID, request.UserID)
 }

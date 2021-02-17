@@ -18,24 +18,24 @@ type inMemoryUsersStorage struct {
 	mu      sync.Mutex
 }
 
-func (s *inMemoryUsersStorage) SaveUser(userId int, friends []int) {
+func (s *inMemoryUsersStorage) SaveUser(userID int, friends []int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for _, friendId := range friends {
-		friendsIds, ok := s.storage[friendId]
+	for _, friendID := range friends {
+		friendsIDs, ok := s.storage[friendID]
 
 		if ok {
-			s.storage[friendId] = append(friendsIds, userId)
+			s.storage[friendID] = append(friendsIDs, userID)
 		} else {
-			s.storage[friendId] = []int{userId}
+			s.storage[friendID] = []int{userID}
 		}
 	}
 }
 
-func (s *inMemoryUsersStorage) GetAllFriends(userId int) ([]int, error) {
+func (s *inMemoryUsersStorage) GetAllFriends(userID int) ([]int, error) {
 	s.mu.Lock()
-	friends, ok := s.storage[userId]
+	friends, ok := s.storage[userID]
 	s.mu.Unlock()
 
 	if ok {
